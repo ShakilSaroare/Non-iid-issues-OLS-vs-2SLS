@@ -1,0 +1,32 @@
+---
+title: "Non-iid Issues: OLS vs 2SLS"
+output: html_notebook
+---
+
+```{r}
+dat<-read.csv("midterm.csv",header=T)
+names(dat)[1]<-"pubid"
+dat<-na.omit(dat)
+intrcpt<-rep(1,dim(dat)[1])
+x<-as.matrix(cbind(intrcpt,pctinsclnxtyr=dat[,"pct_insclnxtyr"],mhighgrad=dat[,"mhighgrad"],msomcol=dat[,"msomcol"],
+                   fhighgrad=dat[,"fhighgrad"],fsomcol=dat[,"fsomcol"],parincome=dat[,"parincome"],afqt=dat[,"afqt"]))
+y<-dat[,"dayssmklm17"]
+beta<-solve(t(x)%*%x)%*%(t(x)%*%y) #OLS estimation
+res<-y-x%*%beta
+sigma<-matrix(rep(0,dim(x)[1]*dim(x)[1]),nrow=dim(x)[1],ncol=dim(x)[1]) #Variance-Covariance structure: Assuming 
+                                                                           #independence but non-identical 
+for (i in 1:dim(x)[1]){
+    for (j in 1:dim(x)[1]){
+        if (i==j)sigma[i,j]<-res[i]^2
+    }
+}
+covmat<-solve(t(x)%*%x)%*%t(x)%*%sigma%*%x%*%solve(t(x)%*%x) #Robust standard error estimation 
+ci_up<-beta[2]+sqrt(covmat[2,2])*1.96
+ci_low<-beta[2]-sqrt(covmat[2,2])*1.96
+ci<-data.frame(cbind(ci_low,ci_up))     #Confidence interval for "pctinsclnxtyr"
+names(ci)=c("Lower limit","Upper limit")
+row.names(ci)<-"CI- OLS Est"
+ci
+beta
+```
+
