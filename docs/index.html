@@ -223,6 +223,89 @@ ci_low&lt;-beta[2]-sqrt(covmat[2,2])*1.96
 ci&lt;-data.frame(cbind(ci_low,ci_up))     #Confidence interval for &quot;pctinsclnxtyr&quot;
 names(ci)=c(&quot;Lower limit&quot;,&quot;Upper limit&quot;)
 row.names(ci)&lt;-&quot;CI- OLS Est&quot;</code></pre>
+<p>Next, we calculate bootstrap-c and bootstarp-t confidence interval. We consider a resampling of the dataset 1000 times to find the distribution of the estimates. For boot-c, we directly find the quantiles of the distribution of estimates and then calculate the confidence interval using that. On the other hand, for boot-t, we first transform the estimates into standard-t variables, considering the OLS estimate as the true value. Then, we find the qunatiles and subsequently confidence interval.</p>
+<pre class="r"><code>set.seed(100)
+s&lt;-1:dim(dat)[1]
+l&lt;-1000
+beta.b&lt;-matrix(rep(0,l*dim(x)[2]),nrow=l,ncol=dim(x)[2])
+se.b&lt;-c()
+for(i in 1:l){
+    rs&lt;-sample(s,size=length(s),replace=T)
+    beta.b[i,]&lt;-solve(t(x[rs,])%*%x[rs,])%*%(t(x[rs,])%*%y[rs])
+    resd&lt;-y[rs]-x[rs,]%*%beta.b[i,]
+    sig&lt;-matrix(rep(0,dim(x[rs,])[1]*dim(x[rs,])[1]),nrow=dim(x[rs,])[1],ncol=dim(x[rs,])[1])
+    diag(sig)&lt;- resd^2
+    cov&lt;-solve(t(x[rs,])%*%x[rs,])%*%t(x[rs,])%*%sig%*%x[rs,]%*%solve(t(x[rs,])%*%x[rs,])
+    se.b[i]&lt;-sqrt(cov[2,2])
+}
+ci.bc&lt;-quantile(beta.b[,2],c(0.025,0.975)) #Boot-c confidence interval
+names(ci.bc)=c(&quot;Lower limit&quot;,&quot;Upper limit&quot;)
+t&lt;-(beta.b[,2]-beta[2])/se.b
+td&lt;-quantile(t,c(0.025,0.975))
+ci.bt_l&lt;-beta[2]+sqrt(covmat[2,2])*td[1]
+ci.bt_u&lt;-beta[2]+sqrt(covmat[2,2])*td[2]
+ci.bt&lt;-data.frame(cbind(ci.bt_l,ci.bt_u))     #Boot-t confidence interval
+names(ci.bt)=c(&quot;Lower limit&quot;,&quot;Upper limit&quot;)</code></pre>
+<p>Now, we move onto 2SLS estimates, more specifically IV estimates with just identification. We use “ctuition17” as the instrument for “pct_insclnxtyr.”</p>
+<pre class="r"><code>z&lt;-as.matrix(cbind(intrcpt,ctuition17=dat[,&quot;ctuition17&quot;],mhighgrad=dat[,&quot;mhighgrad&quot;],
+                   msomcol=dat[,&quot;msomcol&quot;],fhighgrad=dat[,&quot;fhighgrad&quot;],
+                   fsomcol=dat[,&quot;fsomcol&quot;],parincome=dat[,&quot;parincome&quot;],
+                   afqt=dat[,&quot;afqt&quot;]))
+beta_1st&lt;-solve(t(z)%*%z)%*%(t(z)%*%dat[,&quot;pct_insclnxtyr&quot;]) #First stage of 2SLS 
+pct.hat&lt;-z%*%beta_1st
+x.hat&lt;-as.matrix(cbind(intrcpt,pct.hat,mhighgrad=dat[,&quot;mhighgrad&quot;],
+                       msomcol=dat[,&quot;msomcol&quot;],fhighgrad=dat[,&quot;fhighgrad&quot;],
+                       fsomcol=dat[,&quot;fsomcol&quot;], parincome=dat[,&quot;parincome&quot;],
+                       afqt=dat[,&quot;afqt&quot;]))
+beta_iv&lt;-solve(t(x.hat)%*%x.hat)%*%(t(x.hat)%*%y)
+rownames(beta_iv)[2]&lt;-&quot;pctinsclnxtyr&quot;
+res_iv&lt;-y-x%*%beta_iv
+sigma_iv&lt;-matrix(rep(0,dim(x.hat)[1]*dim(x.hat)[1]),nrow=dim(x.hat)[1],ncol=dim(x.hat)[1])
+diag(sigma_iv)&lt;- res_iv^2
+covmat_iv&lt;-solve(t(x.hat)%*%x.hat)%*%t(x.hat)%*%sigma_iv%*%x.hat%*%solve(t(x.hat)%*%x.hat) #Robust standard error estimation 
+ci_up_iv&lt;-beta_iv[2]+sqrt(covmat_iv[2,2])*1.96
+ci_low_iv&lt;-beta_iv[2]-sqrt(covmat_iv[2,2])*1.96
+ci_iv&lt;-data.frame(cbind(ci_low_iv,ci_up_iv))     #Confidence interval for IV estimate
+names(ci_iv)=c(&quot;Lower limit&quot;,&quot;Upper limit&quot;)
+row.names(ci_iv)&lt;-&quot;CI- IV Est&quot;</code></pre>
+<p>Finally, we do the boot-c and boot-t confidence interval for 2SLS estimates. We use IV estimates as true parameter value for boot-t confidence interval.</p>
+<pre class="r"><code>set.seed(100)
+s&lt;-1:dim(dat)[1]
+l&lt;-1000
+beta_iv.b&lt;-matrix(rep(0,l*dim(x.hat)[2]),nrow=l,ncol=dim(x.hat)[2])
+se_iv.b&lt;-c()
+for(i in 1:l){
+    rs&lt;-sample(s,size=length(s),replace=T)
+    beta_1st&lt;-solve(t(z[rs,])%*%z[rs,])%*%(t(z[rs,])%*%dat[,&quot;pct_insclnxtyr&quot;][rs])
+    pct.hat&lt;-z[rs,]%*%beta_1st
+    x.hat&lt;-as.matrix(cbind(intrcpt,pctinsclnxtyr=pct.hat,
+                          mhighgrad=dat[,&quot;mhighgrad&quot;][rs],msomcol=dat[,&quot;msomcol&quot;][rs],
+                      fhighgrad=dat[,&quot;fhighgrad&quot;][rs],fsomcol=dat[,&quot;fsomcol&quot;][rs],
+                      parincome=dat[,&quot;parincome&quot;][rs],afqt=dat[,&quot;afqt&quot;][rs]))
+    beta_iv.b[i,]&lt;-solve(t(x.hat)%*%x.hat)%*%(t(x.hat)%*%y[rs])
+    resd_iv&lt;-y[rs]-x[rs,]%*%beta_iv.b[i,]
+    sig_iv&lt;-matrix(rep(0,dim(x.hat[rs,])[1]*dim(x.hat[rs,])[1]),nrow=dim(x.hat[rs,])[1],ncol=dim(x.hat[rs,])[1]) #Independent but non-identical 
+    diag(sig_iv) &lt;- resd_iv^2
+cov_iv&lt;-solve(t(x.hat[rs,])%*%x.hat[rs,])%*%t(x.hat[rs,])%*%sig_iv%*%x.hat[rs,]%*%solve(t(x.hat[rs,])%*%x.hat[rs,])
+se_iv.b[i]&lt;-sqrt(cov_iv[2,2])
+}
+ci.bc_iv&lt;-quantile(beta_iv.b[,2],c(0.025,0.975))#Bootstrap-c Confidence interval for IV estimate
+names(ci.bc_iv)=c(&quot;Lower limit&quot;,&quot;Upper limit&quot;)
+t_iv&lt;-(beta_iv.b[,2]-beta_iv[2])/se_iv.b
+td_iv&lt;-quantile(t_iv,c(0.025,0.975))
+ci.bt_liv&lt;-beta_iv[2]+sqrt(covmat_iv[2,2])*td_iv[1]
+ci.bt_uiv&lt;-beta_iv[2]+sqrt(covmat_iv[2,2])*td_iv[2]
+ci.bt_iv&lt;-data.frame(cbind(ci.bt_liv,ci.bt_uiv))     #Boot-t confidence interval
+names(ci.bt_iv)=c(&quot;Lower limit&quot;,&quot;Upper limit&quot;)</code></pre>
+<pre class="r"><code>tab &lt;- data.frame(rbind(ci, ci.bc, ci.bt, ci_iv , ci.bc_iv, ci.bt_iv))
+row.names(tab)&lt;-c(&quot;OLS&quot;, &quot;OLS_boot-c&quot;, &quot;OLS_boot-t&quot;,&quot;2SLS&quot;, &quot;2SLS_boot-c&quot;, &quot;2SLS_boot-t&quot;)
+tab</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Lower.limit"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["Upper.limit"],"name":[2],"type":["dbl"],"align":["right"]}],"data":[{"1":"-0.08100386","2":"-0.02249132","_rn_":"OLS"},{"1":"-0.08216643","2":"-0.02506131","_rn_":"OLS_boot-c"},{"1":"-0.07975625","2":"-0.02232763","_rn_":"OLS_boot-t"},{"1":"-0.32195097","2":"0.09500888","_rn_":"2SLS"},{"1":"-0.42827540","2":"0.10365589","_rn_":"2SLS_boot-c"},{"1":"-0.28032524","2":"0.09229183","_rn_":"2SLS_boot-t"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<p>From the four confidence intervals, we can see that the OLS estimate under heterogeneity with robust standard error estimate has 95% confidence interval (CI) similar to that of what we get with bootstrap sampling. On the other hand, two stage least square (2SLS) produces a CI which is narrower than what is produced through the bootstrap estimate. These results goes along the point made in the recent paper of Alwyn Young where he asserted that, 2SLS is susceptible to non-iid relative to OLS.</p>
 <div id="references" class="section level2 unnumbered">
 <h2 class="unnumbered">References</h2>
 <div id="refs" class="references csl-bib-body hanging-indent">
