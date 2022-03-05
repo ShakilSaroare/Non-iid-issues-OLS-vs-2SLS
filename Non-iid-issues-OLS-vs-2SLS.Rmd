@@ -10,7 +10,7 @@ knit: (function(input_file, encoding) { out_dir <- 'docs'; rmarkdown::render(inp
   encoding=encoding, output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 ---
 
-In this project, we are going to evaluate how OLS and 2SLS methods are affected by non-iid. This issue has been extensively discussed in @young2019consistency.First of all, we load the dataset which is provided in the repository as well. 
+In this project, we are going to evaluate how OLS and 2SLS methods are affected by non-iid. This issue has been extensively discussed in @young2019consistency . First of all, we load the dataset which is provided in the repository as well. 
 
 ```{r}
 dat<-read.csv("midterm.csv",header=T)

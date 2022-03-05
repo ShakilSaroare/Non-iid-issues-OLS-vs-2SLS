@@ -58,6 +58,28 @@ if (window.hljs) {
 
 
 
+<style type="text/css">
+/* for pandoc --citeproc since 2.11 */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
 
 
 
@@ -170,7 +192,7 @@ pre code {
 </div>
 
 
-<p>In this project, we are going to evaluate how OLS and 2SLS methods are affected by non-iid. This issue has been extensively discussed in <span class="citation">(<strong>young2019consistency.First?</strong>)</span> of all, we load the dataset which is provided in the repository as well.</p>
+<p>In this project, we are going to evaluate how OLS and 2SLS methods are affected by non-iid. This issue has been extensively discussed in <span class="citation">Young (2019)</span> . First of all, we load the dataset which is provided in the repository as well.</p>
 <pre class="r"><code>dat&lt;-read.csv(&quot;midterm.csv&quot;,header=T)
 names(dat)[1]&lt;-&quot;pubid&quot;
 dat&lt;-na.omit(dat) #we take care of missing values by omitting them 
@@ -201,8 +223,13 @@ ci_low&lt;-beta[2]-sqrt(covmat[2,2])*1.96
 ci&lt;-data.frame(cbind(ci_low,ci_up))     #Confidence interval for &quot;pctinsclnxtyr&quot;
 names(ci)=c(&quot;Lower limit&quot;,&quot;Upper limit&quot;)
 row.names(ci)&lt;-&quot;CI- OLS Est&quot;</code></pre>
-<div id="references" class="section level2">
-<h2>References</h2>
+<div id="references" class="section level2 unnumbered">
+<h2 class="unnumbered">References</h2>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-young2019consistency" class="csl-entry">
+Young, Alwyn. 2019. <span>“Consistency Without Inference: Instrumental Variables in Practical Application.”</span>
+</div>
+</div>
 </div>
 
 
