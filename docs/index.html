@@ -170,44 +170,40 @@ pre code {
 </div>
 
 
+<p>In this project, we are going to evaluate how OLS and 2SLS methods are affected by non-iid. This issue has been extensively discussed in <span class="citation">(<strong>young2019consistency.First?</strong>)</span> of all, we load the dataset which is provided in the repository as well.</p>
 <pre class="r"><code>dat&lt;-read.csv(&quot;midterm.csv&quot;,header=T)
 names(dat)[1]&lt;-&quot;pubid&quot;
-dat&lt;-na.omit(dat)
+dat&lt;-na.omit(dat) #we take care of missing values by omitting them 
 intrcpt&lt;-rep(1,dim(dat)[1])
-x&lt;-as.matrix(cbind(intrcpt,pctinsclnxtyr=dat[,&quot;pct_insclnxtyr&quot;],mhighgrad=dat[,&quot;mhighgrad&quot;],msomcol=dat[,&quot;msomcol&quot;],
-                   fhighgrad=dat[,&quot;fhighgrad&quot;],fsomcol=dat[,&quot;fsomcol&quot;],parincome=dat[,&quot;parincome&quot;],afqt=dat[,&quot;afqt&quot;]))
-y&lt;-dat[,&quot;dayssmklm17&quot;]
-beta&lt;-solve(t(x)%*%x)%*%(t(x)%*%y) #OLS estimation
+x&lt;-as.matrix(cbind(intrcpt,pctinsclnxtyr=dat[,&quot;pct_insclnxtyr&quot;],
+                   mhighgrad=dat[,&quot;mhighgrad&quot;],msomcol=dat[,&quot;msomcol&quot;],
+                   fhighgrad=dat[,&quot;fhighgrad&quot;],fsomcol=dat[,&quot;fsomcol&quot;],
+                   parincome=dat[,&quot;parincome&quot;],afqt=dat[,&quot;afqt&quot;])) #indep. var. matrix
+y&lt;-dat[,&quot;dayssmklm17&quot;] #define dependent variable</code></pre>
+<p>First, we start with the OLS estimation. Non-iid is imposed such that:</p>
+$$=
+<span class="math display">\[\begin{bmatrix} \sigma_{1}^{2} &amp; 0 &amp; 0 &amp; \ldots &amp; 0\\
+0  &amp; \sigma_{2}^{2} &amp; 0 &amp; \ldots &amp; 0\\
+
+\vdots &amp; \vdots &amp; \vdots &amp; \ddots &amp; 0\\
+
+0  &amp; 0 &amp; 0 &amp; \ldots &amp; \sigma_{n}^{2}
+\end{bmatrix}\]</span>
+<p>$$</p>
+<p>The variance-covariance matrix is estimated using the robust standard error method.Once we have the var-cov matrix, we can then estimate the 95% confidence interval.</p>
+<pre class="r"><code>beta&lt;-solve(t(x)%*%x)%*%(t(x)%*%y) #OLS estimation
 res&lt;-y-x%*%beta
-sigma&lt;-matrix(rep(0,dim(x)[1]*dim(x)[1]),nrow=dim(x)[1],ncol=dim(x)[1]) #Variance-Covariance structure: Assuming 
-                                                                           #independence but non-identical 
-for (i in 1:dim(x)[1]){
-    for (j in 1:dim(x)[1]){
-        if (i==j)sigma[i,j]&lt;-res[i]^2
-    }
-}
+sigma&lt;-matrix(rep(0,dim(x)[1]*dim(x)[1]),nrow=dim(x)[1],ncol=dim(x)[1]) 
+diag(sigma)&lt;- res^2 #non-iid property
 covmat&lt;-solve(t(x)%*%x)%*%t(x)%*%sigma%*%x%*%solve(t(x)%*%x) #Robust standard error estimation 
 ci_up&lt;-beta[2]+sqrt(covmat[2,2])*1.96
 ci_low&lt;-beta[2]-sqrt(covmat[2,2])*1.96
 ci&lt;-data.frame(cbind(ci_low,ci_up))     #Confidence interval for &quot;pctinsclnxtyr&quot;
 names(ci)=c(&quot;Lower limit&quot;,&quot;Upper limit&quot;)
-row.names(ci)&lt;-&quot;CI- OLS Est&quot;
-ci</code></pre>
-<div data-pagedtable="false">
-<script data-pagedtable-source type="application/json">
-{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["Lower limit"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["Upper limit"],"name":[2],"type":["dbl"],"align":["right"]}],"data":[{"1":"-0.08100386","2":"-0.02249132","_rn_":"CI- OLS Est"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
-  </script>
+row.names(ci)&lt;-&quot;CI- OLS Est&quot;</code></pre>
+<div id="references" class="section level2">
+<h2>References</h2>
 </div>
-<pre class="r"><code>beta</code></pre>
-<pre><code>##                      [,1]
-## intrcpt        4.47802507
-## pctinsclnxtyr -0.05174759
-## mhighgrad      1.70575780
-## msomcol        1.65431451
-## fhighgrad      2.04786694
-## fsomcol       -0.69472874
-## parincome      0.01560051
-## afqt           0.02546164</code></pre>
 
 
 

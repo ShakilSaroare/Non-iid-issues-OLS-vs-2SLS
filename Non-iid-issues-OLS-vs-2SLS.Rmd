@@ -3,34 +3,50 @@ title: 'Non-iid Issues: OLS vs 2SLS'
 output:
   html_document:
     df_print: paged
+
+bibliography: references.bib
+
 knit: (function(input_file, encoding) { out_dir <- 'docs'; rmarkdown::render(input_file,
   encoding=encoding, output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 ---
 
+In this project, we are going to evaluate how OLS and 2SLS methods are affected by non-iid. This issue has been extensively discussed in @young2019consistency.First of all, we load the dataset which is provided in the repository as well. 
+
 ```{r}
 dat<-read.csv("midterm.csv",header=T)
 names(dat)[1]<-"pubid"
-dat<-na.omit(dat)
+dat<-na.omit(dat) #we take care of missing values by omitting them 
 intrcpt<-rep(1,dim(dat)[1])
-x<-as.matrix(cbind(intrcpt,pctinsclnxtyr=dat[,"pct_insclnxtyr"],mhighgrad=dat[,"mhighgrad"],msomcol=dat[,"msomcol"],
-                   fhighgrad=dat[,"fhighgrad"],fsomcol=dat[,"fsomcol"],parincome=dat[,"parincome"],afqt=dat[,"afqt"]))
-y<-dat[,"dayssmklm17"]
+x<-as.matrix(cbind(intrcpt,pctinsclnxtyr=dat[,"pct_insclnxtyr"],
+                   mhighgrad=dat[,"mhighgrad"],msomcol=dat[,"msomcol"],
+                   fhighgrad=dat[,"fhighgrad"],fsomcol=dat[,"fsomcol"],
+                   parincome=dat[,"parincome"],afqt=dat[,"afqt"])) #indep. var. matrix
+y<-dat[,"dayssmklm17"] #define dependent variable
+```
+First, we start with the OLS estimation. Non-iid is imposed such that:
+
+$$\Sigma = \begin{bmatrix} \sigma_{1}^{2} & 0 & 0 & \ldots & 0\\
+0  & \sigma_{2}^{2} & 0 & \ldots & 0\\
+
+\vdots & \vdots & \vdots & \ddots & 0\\
+
+0  & 0 & 0 & \ldots & \sigma_{n}^{2}
+\end{bmatrix}$$
+
+The variance-covariance matrix is estimated using the robust standard error method.Once we have the var-cov matrix, we can then estimate the 95% confidence interval. 
+
+```{r}
 beta<-solve(t(x)%*%x)%*%(t(x)%*%y) #OLS estimation
 res<-y-x%*%beta
-sigma<-matrix(rep(0,dim(x)[1]*dim(x)[1]),nrow=dim(x)[1],ncol=dim(x)[1]) #Variance-Covariance structure: Assuming 
-                                                                           #independence but non-identical 
-for (i in 1:dim(x)[1]){
-    for (j in 1:dim(x)[1]){
-        if (i==j)sigma[i,j]<-res[i]^2
-    }
-}
+sigma<-matrix(rep(0,dim(x)[1]*dim(x)[1]),nrow=dim(x)[1],ncol=dim(x)[1]) 
+diag(sigma)<- res^2 #non-iid property
 covmat<-solve(t(x)%*%x)%*%t(x)%*%sigma%*%x%*%solve(t(x)%*%x) #Robust standard error estimation 
 ci_up<-beta[2]+sqrt(covmat[2,2])*1.96
 ci_low<-beta[2]-sqrt(covmat[2,2])*1.96
 ci<-data.frame(cbind(ci_low,ci_up))     #Confidence interval for "pctinsclnxtyr"
 names(ci)=c("Lower limit","Upper limit")
 row.names(ci)<-"CI- OLS Est"
-ci
-beta
 ```
 
+
+## References
